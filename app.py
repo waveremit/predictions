@@ -131,10 +131,13 @@ def predict(session, user, contract_name, percentage):
         raise UserInputException('contract %s is already resolved' %
                                  contract_name)
 
-    if '%' in percentage:
-        value = float(percentage.replace('%', '')) / 100
-    else:
-        value = float(percentage)
+    try:
+        if '%' in percentage:
+            value = float(percentage.replace('%', '')) / 100
+        else:
+            value = float(percentage)
+    except ValueError:
+        raise UserInputException('%s is not a valid float' % percentage)
 
     if value > 1:
          raise UserInputException('percentage above 100%%: %s' % percentage)
