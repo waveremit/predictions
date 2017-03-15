@@ -17,3 +17,13 @@ have been changes to the requirements file, run `pip install -r requirements
 ## Deployment
 
 Pushes to master are auto-deployed to wave-prediction-market.herokuapp.com
+
+## Local testing:
+
+In one terminal:
+
+    SLACK_TOKEN=1 python app.py
+
+In another:
+
+    curl -d 'token=1N&text=COMMAND' localhost:5000
