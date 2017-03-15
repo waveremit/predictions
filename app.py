@@ -3,7 +3,7 @@ import json
 import shlex
 import datetime
 from flask import Flask, request, Response
-from flask_sqlalchemy import SQLAlchemy
+from flask.ext.sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
