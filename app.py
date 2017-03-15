@@ -115,7 +115,7 @@ def show(session, user, contract_name):
 
     close_info = "%s %s" % (
         "Closes" if contract.resolution is None else "Closed",
-        prediction.when_closes)
+        contract.when_closes)
 
     return '%s (%s)\n%s\n\n%s' % (
         contract.terms, resolution, close_info, '\n'.join(predictions))
