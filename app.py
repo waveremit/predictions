@@ -236,8 +236,7 @@ def handle_request():
         session.close()
 
     return Response(json.dumps(
-        # TODO(jeff) switch to in_channel when ready
-        dict(response_type='emphemeral', text=response)),
+        dict(response_type='in_channel', text=response)),
                     mimetype='application/json')
 
 if __name__ == '__main__':
