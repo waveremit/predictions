@@ -3,7 +3,7 @@ import json
 import shlex
 import datetime
 import inspect
-import dateutil.parser
+import parsedatetime
 from flask import Flask, request, Response
 from flask.ext.sqlalchemy import SQLAlchemy
 
@@ -128,9 +128,9 @@ def create(session, user, contract_name, terms, when_closes, house_odds):
                                contract_name)
 
     try:
-        when_closes = dateutil.parser.parse(when_closes)
+        when_closes, _ = parsedatetime.Calendar().parseDT(when_closes)
     except ValueError:
-        raise PredictionsError('Couldn\'t interpret %s as a datetime' %
+        raise PredictionsError('Couldn\'t interpret "%s" as a datetime' %
                                when_closes)
 
     session.add(Contract(name=contract_name, terms=terms,
@@ -236,7 +236,8 @@ def handle_request():
         session.close()
 
     return Response(json.dumps(
-        dict(response_type='in_channel', text=response)),
+        # TODO(jeff) switch to in_channel when ready
+        dict(response_type='emphemeral', text=response)),
                     mimetype='application/json')
 
 if __name__ == '__main__':
