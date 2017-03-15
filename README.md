@@ -22,6 +22,7 @@ Pushes to master are auto-deployed to wave-prediction-market.herokuapp.com
 
 In one terminal:
 
+    createdb predictionslocal
     SLACK_TOKEN=1 python app.py
 
 In another:
