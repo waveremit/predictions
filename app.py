@@ -1,7 +1,7 @@
 import os
 import json
 
-from flask import Flask, request
+from flask import Flask, request, Response
 app = Flask(__name__)
 
 @app.route('/', methods=['POST'])
@@ -10,7 +10,7 @@ def main():
         raise Exception('invalid token')
     response = dict(response_type='ephemeral',
                     text=request.form['text'])
-    return json.dumps(response)
+    return Response(json.dumps(response),  mimetype='application/json')
 
 if __name__ == '__main__':
      app.debug = True
