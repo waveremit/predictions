@@ -3,6 +3,7 @@ import json
 import shlex
 import datetime
 import inspect
+import dateutil.parser
 from flask import Flask, request, Response
 from flask.ext.sqlalchemy import SQLAlchemy
 
@@ -28,16 +29,19 @@ class Contract(db.Model):
     contract_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.UnicodeText, unique=True, nullable=False)
     terms = db.Column(db.UnicodeText, nullable=False)
-    resolution = db.Column(db.Boolean, nullable=True)
     user = db.relationship('User')
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'),
                         nullable=False)
+    when_closes = db.Column(db.DateTime, nullable=False)
     when_created = db.Column(db.DateTime, nullable=False, default=now)
+    resolution = db.Column(db.Boolean, nullable=True)
+    when_resolved = db.Column(db.DateTime, nullable=True)
 
-    def __init__(self, name, terms, user_id):
+    def __init__(self, name, terms, user_id, when_closes):
         self.name = name
         self.terms = terms
         self.user_id = user_id
+        self.when_closes = when_closes
 
     def __repr__(self):
         return '<Contract %s>' % self.name
@@ -68,18 +72,18 @@ def help(session, user_name):
     return """\
 /predict list
 /predict show <contract-name>
-/predict create <contract-name> <contract-terms> <house-odds>
+/predict create <contract-name> <contract-terms> <when-closes> <house-odds>
 /predict <contract-name> <percentage>
 /predict resolve <contract-name> <true|false>"""
 
-class UserInputException(Exception):
+class PredictionsError(Exception):
     pass
 
 def get_contract_or_raise(session, contract_name):
     contract = session.query(Contract).filter(
         Contract.name == contract_name).one_or_none()
     if not contract:
-         raise UserInputException('unknown contract %s' % contract_name)
+         raise PredictionsError('unknown contract %s' % contract_name)
     return contract
 
 @command
@@ -109,27 +113,44 @@ def show(session, user, contract_name):
             prediction.value*100, prediction.user.slack_id,
             prediction.when_created))
 
-    return '%s (%s)\n\n%s' % (
-        contract.terms, resolution, '\n'.join(predictions))
+    close_info = "%s %s" % (
+        "Closes" if contract.resolution is None else "Closed",
+        prediction.when_closes)
+
+    return '%s (%s)\n%s\n\n%s' % (
+        contract.terms, resolution, close_info, '\n'.join(predictions))
 
 @command
-def create(session, user, contract_name, terms, house_odds):
+def create(session, user, contract_name, terms, when_closes, house_odds):
     if session.query(Contract).filter(
             Contract.name == contract_name).one_or_none():
-        raise UserInputException('A contract named %s already exists' %
-                                 contract_name)
+        raise PredictionsError('A contract named %s already exists' %
+                               contract_name)
+
+    try:
+        when_closes = dateutil.parser.parse(when_closes)
+    except ValueError:
+        raise PredictionsError('Couldn\'t interpret %s as a datetime' %
+                               when_closes)
 
     session.add(Contract(name=contract_name, terms=terms,
-                         user_id=user.user_id))
-    return predict(session, user, contract_name, house_odds)
+                         user_id=user.user_id, when_closes=when_closes))
+    # set the house odds
+    predict(session, user, contract_name, house_odds)
+    return 'Created contract %s open until %s' % (
+        contract_name, when_closes)
 
 @command
 def predict(session, user, contract_name, percentage):
     contract = get_contract_or_raise(session, contract_name)
 
     if contract.resolution != None:
-        raise UserInputException('contract %s is already resolved' %
-                                 contract_name)
+        raise PredictionsError('contract %s is already resolved' %
+                               contract_name)
+
+    if contract.when_closes < now():
+        raise PredictionsError('contract %s closed at %s' %
+                               (contract_name, contract.when_closes))
 
     try:
         if '%' in percentage:
@@ -137,12 +158,12 @@ def predict(session, user, contract_name, percentage):
         else:
             value = float(percentage)
     except ValueError:
-        raise UserInputException('%s is not a valid float' % percentage)
+        raise PredictionsError('%s is not a valid float' % percentage)
 
-    if value > 1:
-         raise UserInputException('percentage above 100%%: %s' % percentage)
-    elif value < 0:
-         raise UserInputException('percentage below 0%%: %s' % percentage)
+    if value >= 1:
+         raise PredictionsError('percentage >= 100%%: %s' % percentage)
+    elif value <= 0:
+         raise PredictionsError('percentage <= 0%%: %s' % percentage)
 
     session.add(Prediction(value=value, user_id=user.user_id,
                            contract_id=contract.contract_id))
@@ -153,19 +174,20 @@ def resolve(session, user, contract_name, resolution):
     contract = get_contract_or_raise(session, contract_name)
 
     if contract.resolution != None:
-        raise UserInputException('contract %s is already resolved' %
-                                 contract_name)
+        raise PredictionsError('contract %s is already resolved' %
+                               contract_name)
 
     if contract.user_id != user.user_id:
-         raise UserInputException('Only %s can resolve %s' % (
+         raise PredictionsError('Only %s can resolve %s' % (
              contract.user, contract_name))
 
     if resolution.lower() not in ['true', 'false']:
-         raise UserInputException(
+         raise PredictionsError(
              'Predictions must be resolved to "true" or "false"; '
              'got %s' % resolution)
 
     contract.resolution = (resolution.lower() == 'true')
+    contract.when_resolved = now()
     return 'Contract %s resolved as %s' % (contract_name, contract.resolution)
 
 def lookup_or_create_user(session, slack_id):
@@ -194,19 +216,19 @@ def handle_request():
             args = args[1:]
         selected_command = commands[command_str]
 
-        n_expected_args = (
-            len(inspect.signature(selected_command).parameters) -
-            len(internal_args))
+        expected_args = [x for x in inspect.signature(
+            selected_command).parameters][len(internal_args):]
 
-        if len(args) != n_expected_args:
-            raise UserInputException('%s takes %s arguments, got %s' % (
-                command_str, n_expected_args, len(args)))
+        if len(args) != len(expected_args):
+            raise PredictionsError('usage is %s %s' % (
+                command_str, ' '.join(
+                    '<%s>' % arg for arg in expected_args)))
 
         response = selected_command(*internal_args, *args)
         session.commit()
     except Exception as e:
         session.rollback()
-        if isinstance(e, UserInputException):
+        if isinstance(e, PredictionsError):
             return 'Error: %s' % str(e)
         else:
             raise
