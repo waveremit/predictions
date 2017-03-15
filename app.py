@@ -197,7 +197,7 @@ def handle_request():
 
         if len(args) != n_expected_args:
             raise UserInputException('%s takes %s arguments, got %s' % (
-                args[0], n_expected_args, len(args)))
+                command_str, n_expected_args, len(args)))
 
         response = selected_command(*internal_args, *args)
         session.commit()
