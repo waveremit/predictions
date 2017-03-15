@@ -1,9 +1,11 @@
 import os
+import math
 import json
 import shlex
 import datetime
 import inspect
 import parsedatetime
+from collections import defaultdict
 from flask import Flask, request, Response
 from flask.ext.sqlalchemy import SQLAlchemy
 
@@ -106,6 +108,9 @@ def show(session, user, contract_name):
         resolution = 'Resolved %s' % (contract.resolution)
 
     predictions = []
+    previous = None
+    seen_non_house = False
+    scores = defaultdict(float)
     for prediction in session.query(Prediction).filter(
         Prediction.contract_id == contract.contract_id).order_by(
             Prediction.when_created):
@@ -113,12 +118,35 @@ def show(session, user, contract_name):
             prediction.value*100, prediction.user.slack_id,
             prediction.when_created))
 
-    close_info = "%s %s" % (
-        "Closes" if contract.resolution is None else "Closed",
+        if contract.resolution is not None:
+            if prediction.user_id != contract.user_id:
+                # You don't get points for creating a contract and then betting
+                # on it yourself before anyone else does.  Just treat those as
+                # house odds.
+                seen_non_house = True
+
+            if previous and seen_non_house:
+                if contract.resolution:
+                    ratio = prediction.value / previous.value
+                else:
+                    ratio = (1-prediction.value) / (1-previous.value)
+                points = 100*math.log(ratio)
+                scores[prediction.user.slack_id] += points
+            previous = prediction
+
+    close_info = '%s %s' % (
+        'Closes' if contract.resolution is None else 'Closed',
         contract.when_closes)
 
-    return '%s (%s)\n%s\n\n%s' % (
-        contract.terms, resolution, close_info, '\n'.join(predictions))
+    scoring = ''
+    if scores:
+        scoring = '\n\nscores:\n-------\n' + '\n'.join('%s: %.2f' % (
+            slack_id, points) for (points, slack_id) in sorted(
+                [(v,k) for (k,v) in scores.items()], reverse=True))
+
+    return '%s (%s)\n%s\n\n%s%s' % (
+        contract.terms, resolution, close_info, '\n'.join(predictions),
+        scoring)
 
 @command
 def create(session, user, contract_name, terms, when_closes, house_odds):
