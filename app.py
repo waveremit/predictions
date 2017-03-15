@@ -236,7 +236,7 @@ def handle_request():
         session.close()
 
     return Response(json.dumps(
-        dict(response_type='ephemeral', text=response)),
+        dict(response_type='in_channel', text=response)),
                     mimetype='application/json')
 
 if __name__ == '__main__':
