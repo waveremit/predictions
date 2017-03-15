@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Fixes up a virtualenv with the right project directory and startup scripts.
+
+if [ -z "$VIRTUAL_ENV" ]; then
+    echo "Please do 'workon predictions' first, then run $0."
+    exit 1
+fi
+
+cd $(dirname "$0")
+export GIT_ROOT=$(while [ -w . ]; do if [ -d .git ]; then pwd; break; fi; cd ..; done)
+echo "$GIT_ROOT" > "$VIRTUAL_ENV/$VIRTUALENVWRAPPER_PROJECT_FILENAME"
+echo 'cdproject; source bin/postactivate' > $VIRTUAL_ENV/bin/postactivate
+
+echo "All set.  Just type 'workon predictions' now and you'll be ready to go!"
