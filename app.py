@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 @app.route('/', methods=['POST'])
 def main():
-    if request.form['token'] != os.environ('SLACK_TOKEN'):
+    if request.form['token'] != os.environ['SLACK_TOKEN']:
         raise Exception('invalid token')
     response = dict(response_type='ephemeral',
                     text=request.form['text'])
