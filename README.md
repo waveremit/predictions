@@ -27,4 +27,4 @@ In one terminal:
 
 In another:
 
-    curl -d 'token=1N&text=COMMAND' localhost:5000
+    curl -d 'token=1&user_name=test&text=COMMAND' localhost:5000
