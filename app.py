@@ -2,6 +2,7 @@ import os
 import json
 import shlex
 import datetime
+import inspect
 from flask import Flask, request, Response
 from flask.ext.sqlalchemy import SQLAlchemy
 
@@ -108,7 +109,7 @@ def show(session, user, contract_name):
             prediction.value*100, prediction.user.slack_id,
             prediction.when_created))
 
-    return '%s (%s)\n\n%s%s' % (
+    return '%s (%s)\n\n%s' % (
         contract.terms, resolution, '\n'.join(predictions))
 
 @command
@@ -183,10 +184,22 @@ def handle_request():
     try:
         session = db.session
         user = lookup_or_create_user(session, request.form['user_name'])
+        internal_args = [session, user]
+        command_str = 'predict'
         if args[0] in commands:
-            response = commands[args[0]](session, user, *args[1:])
-        else:
-            response = predict(session, user, *args)
+            command_str = args[0]
+            args = args[1:]
+        selected_command = commands[command_str]
+
+        n_expected_args = (
+            len(inspect.signature(selected_command).parameters) -
+            len(internal_args))
+
+        if len(args) != n_expected_args:
+            raise UserInputException('%s takes %s arguments, got %s' % (
+                args[0], n_expected_args, len(args)))
+
+        response = selected_command(*internal_args, *args)
         session.commit()
     except Exception as e:
         session.rollback()
