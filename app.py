@@ -191,7 +191,7 @@ def handle_request():
     except Exception as e:
         session.rollback()
         if isinstance(e, UserInputException):
-            return str(e)
+            return 'Error: %s' % str(e)
         else:
             raise
     finally:
