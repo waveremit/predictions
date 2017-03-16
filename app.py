@@ -1,7 +1,9 @@
 import os
 import math
 import json
+import pytz
 import shlex
+import tzlocal
 import datetime
 import inspect
 import parsedatetime
@@ -156,11 +158,12 @@ def create(session, user, contract_name, terms, when_closes, house_odds):
                                contract_name)
 
     try:
-        when_closes, _ = parsedatetime.Calendar().parseDT(when_closes)
+        when_closes, _ = parsedatetime.Calendar().parseDT(
+            when_closes, tzinfo=tzlocal.get_localzone())
     except ValueError:
         raise PredictionsError('Couldn\'t interpret "%s" as a datetime' %
                                when_closes)
-
+    when_closes = when_closes.astimezone(pytz.utc).replace(tzinfo=None)
     session.add(Contract(name=contract_name, terms=terms,
                          user_id=user.user_id, when_closes=when_closes))
     # set the house odds
@@ -207,12 +210,12 @@ def resolve(session, user, contract_name, resolution):
 
     if contract.user_id != user.user_id:
          raise PredictionsError('Only %s can resolve %s' % (
-             contract.user, contract_name))
+             contract.user.slack_id, contract_name))
 
     if resolution.lower() not in ['true', 'false']:
          raise PredictionsError(
              'Predictions must be resolved to "true" or "false"; '
-             'got %s' % resolution)
+             'got "%s"' % resolution)
 
     contract.resolution = (resolution.lower() == 'true')
     contract.when_resolved = now()
