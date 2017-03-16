@@ -18,7 +18,13 @@ have been changes to the requirements file, run `pip install -r requirements
 
 Pushes to master are auto-deployed to wave-prediction-market.herokuapp.com
 
-## Local testing:
+## Tests
+
+### Automated tests
+
+pytest .
+
+### Manual testing:
 
 In one terminal:
 
