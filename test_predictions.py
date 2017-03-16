@@ -203,7 +203,7 @@ def test_show(s):
 
     out = run(s, app.show, 'test-contract1')
     assert 'terms (Resolved False)' in out
-    assert 'Closed' in out
+    assert 'Was to close' in out
     assert '50.00%   test (' in out
     assert '60.00%   user1 (' in out
     assert '80.00%   user2 (' in out
@@ -214,6 +214,12 @@ def test_show(s):
     assert 'scores:' in out
     assert 'user1: 126.84' in out
     assert 'user2: -57.54' in out
+
+    run(s, app.cancel, 'test-contract1')
+    out = run(s, app.show, 'test-contract1')
+    assert 'scores' not in out
+    assert 'Was to close' in out
+    assert 'Cancelled' in out
 
     # User 'test' doesn't get lots of points for setting the house odds at 1%
     # and then immediately predicting 99%.
@@ -228,16 +234,16 @@ def test_show(s):
 
 def test_dt_to_string():
     assert app.dt_to_string(
-        app.now() + datetime.timedelta(seconds=60*60*24+5)) == "in 1d"
+        app.now() + datetime.timedelta(seconds=60*60*24+5)) == '1d from now'
     assert app.dt_to_string(
-        app.now() - datetime.timedelta(seconds=60*60*24+5)) == "1d ago"
+        app.now() - datetime.timedelta(seconds=60*60*24+5)) == '1d ago'
 
     assert app.dt_to_string(
-        app.now() + datetime.timedelta(seconds=60*60+5)) == "in 1hr"
+        app.now() + datetime.timedelta(seconds=60*60+5)) == '1hr from now'
     assert app.dt_to_string(
-        app.now() - datetime.timedelta(seconds=60*60+5)) == "1hr ago"
+        app.now() - datetime.timedelta(seconds=60*60+5)) == '1hr ago'
 
     assert app.dt_to_string(
-        app.now() + datetime.timedelta(seconds=60*34+5)) == "in 34min"
+        app.now() + datetime.timedelta(seconds=60*34+5)) == '34min from now'
     assert app.dt_to_string(
-        app.now() - datetime.timedelta(seconds=60*34+5)) == "34min ago"
+        app.now() - datetime.timedelta(seconds=60*34+5)) == '34min ago'

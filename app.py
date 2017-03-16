@@ -97,18 +97,18 @@ def dt_to_string(dt):
     delta = abs(dt_now - dt)
 
     if delta.days:
-        s = "%sd" % int(delta.days)
+        s = '%sd' % int(delta.days)
     elif delta.seconds > 60*60:
-        s = "%shr" % int(delta.seconds/60/60)
+        s = '%shr' % int(delta.seconds/60/60)
     elif delta.seconds > 60:
-        s = "%smin" % int(delta.seconds/60)
+        s = '%smin' % int(delta.seconds/60)
     else:
-        s = "%ss" % int(delta.seconds)
+        s = '%ss' % int(delta.seconds)
 
     if dt_now > dt:
-        return "%s ago" % s
+        return '%s ago' % s
     else:
-        return "in %s" % s
+        return '%s from now' % s
 
 def get_contract_or_raise(session, contract_name):
     contract = session.query(Contract).filter(
@@ -188,11 +188,19 @@ def show(session, user, contract_name):
                 scores[prediction.user.slack_id] += points
             previous = prediction
 
-    if contract.resolution is None:
-        close_info = 'Closes %s (%s UTC)' % (
-            dt_to_string(contract.when_closes), contract.when_closes)
+    dt_now = now()
+    if contract.when_closes < dt_now:
+        if contract.when_cancelled != None:
+            close_info = ''
+        else:
+            close_info = 'Closed %s\n' % dt_to_string(contract.when_closes)
     else:
-        close_info = 'Closed %s' % dt_to_string(contract.when_closes)
+        if contract.resolution != None or contract.when_cancelled != None:
+            close_info = 'Was to close %s\n' % dt_to_string(
+                contract.when_closes)
+        else:
+            close_info = 'Closes %s (%s UTC)\n' % (
+                dt_to_string(contract.when_closes), contract.when_closes)
 
     scoring = ''
     if scores:
@@ -200,7 +208,7 @@ def show(session, user, contract_name):
             slack_id, points) for (points, slack_id) in sorted(
                 [(v,k) for (k,v) in scores.items()], reverse=True))
 
-    return '%s (%s)\n%s\n\n%s%s' % (
+    return '%s (%s)\n%s\n%s%s' % (
         contract.terms, resolution, close_info, '\n'.join(predictions),
         scoring)
 
