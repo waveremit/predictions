@@ -78,7 +78,39 @@ def test_create(s):
 
 def test_help(s):
     out = run(s, app.help)
-    assert '/predict' in out
+    assert '/predict more_help' in out
+
+def test_more_help(s):
+    out = run(s, app.more_help)
+    assert '/predict list_resolved' in out
+
+def test_list(s):
+    out = run(s, app.list)
+    assert 'no active contracts' in out
+
+    run(s, app.create, 'test-contract1', 'terms', '1 hour', '.5')
+    run(s, app.create, 'test-contract2', 'terms', '1 hour', '.5')
+    run(s, app.create, 'test-contract3', 'terms', '1 hour', '.5')
+    run(s, app.create, 'test-contract4', 'terms', '1 hour', '.5')
+    run(s, app.create, 'test-contract5', 'terms', '1 hour', '.5')
+    run(s, app.create, 'test-contract6', 'terms', '1 hour', '.5')
+
+    run(s, app.cancel, 'test-contract3')
+    run(s, app.cancel, 'test-contract4')
+    run(s, app.resolve, 'test-contract5', 'true')
+    run(s, app.resolve, 'test-contract6', 'false')
+
+    assert '''\
+test-contract1
+test-contract2''' == run(s, app.list)
+
+    assert '''\
+test-contract3
+test-contract4''' == run(s, app.list_cancelled)
+
+    assert '''\
+test-contract5
+test-contract6''' == run(s, app.list_resolved)
 
 def test_list(s):
     out = run(s, app.list)

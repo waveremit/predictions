@@ -80,11 +80,17 @@ def help(session, user_name):
 /predict create <contract-name> <contract-terms> <when-closes> <house-odds>
 /predict <contract-name> <percentage>
 /predict resolve <contract-name> <true|false>
-/predict cancel <contract-name>"""
+/predict more_help"""
+
+@command
+def more_help(session, user_name):
+    return """\
+/predict cancel <contract-name>
+/predict list_resolved
+/predict list_cancelled"""
 
 class PredictionsError(Exception):
     pass
-
 
 def dt_to_string(dt):
     dt_now = now()
@@ -115,10 +121,32 @@ def get_contract_or_raise(session, contract_name):
 def list(session, user):
     r = []
     for contract in session.query(Contract).filter(
-            Contract.resolution == None):
+            Contract.resolution == None,
+            Contract.when_cancelled == None):
         r.append(contract.name)
     if not r:
         return 'no active contracts'
+    return '\n'.join(r)
+
+@command
+def list_cancelled(session, user):
+    r = []
+    for contract in session.query(Contract).filter(
+            Contract.when_cancelled != None):
+        r.append(contract.name)
+    if not r:
+        return 'no cancelled contracts'
+    return '\n'.join(r)
+
+@command
+def list_resolved(session, user):
+    r = []
+    for contract in session.query(Contract).filter(
+            Contract.resolution != None,
+            Contract.when_cancelled == None):
+        r.append(contract.name)
+    if not r:
+        return 'no resolved contracts'
     return '\n'.join(r)
 
 @command
