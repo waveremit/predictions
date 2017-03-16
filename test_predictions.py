@@ -137,7 +137,7 @@ def test_resolve(s):
 def test_show(s):
     run_error(s, 'unknown contract',
               app.show, 'test-contract1')
-    
+
     run(s, app.create, 'test-contract1', 'terms', '1 hour', '.5')
     out = run(s, app.show, 'test-contract1')
     assert 'terms (Unresolved)' in out
@@ -177,4 +177,19 @@ def test_show(s):
     out = run(s, app.show, 'test-contract2')
     assert 'test: 9.53' in out
     assert 'user1: -9.53' in out
-    
+
+def test_dt_to_string():
+    assert app.dt_to_string(
+        app.now() + datetime.timedelta(seconds=60*60*24+5)) == "in 1d"
+    assert app.dt_to_string(
+        app.now() - datetime.timedelta(seconds=60*60*24+5)) == "1d ago"
+
+    assert app.dt_to_string(
+        app.now() + datetime.timedelta(seconds=60*60+5)) == "in 1hr"
+    assert app.dt_to_string(
+        app.now() - datetime.timedelta(seconds=60*60+5)) == "1hr ago"
+
+    assert app.dt_to_string(
+        app.now() + datetime.timedelta(seconds=60*34+5)) == "in 34min"
+    assert app.dt_to_string(
+        app.now() - datetime.timedelta(seconds=60*34+5)) == "34min ago"

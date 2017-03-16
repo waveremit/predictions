@@ -83,6 +83,25 @@ def help(session, user_name):
 class PredictionsError(Exception):
     pass
 
+
+def dt_to_string(dt):
+    dt_now = now()
+    delta = abs(dt_now - dt)
+
+    if delta.days:
+        s = "%sd" % int(delta.days)
+    elif delta.seconds > 60*60:
+        s = "%shr" % int(delta.seconds/60/60)
+    elif delta.seconds > 60:
+        s = "%smin" % int(delta.seconds/60)
+    else:
+        s = "%ss" % int(delta.seconds)
+
+    if dt_now > dt:
+        return "%s ago" % s
+    else:
+        return "in %s" % s
+
 def get_contract_or_raise(session, contract_name):
     contract = session.query(Contract).filter(
         Contract.name == contract_name).one_or_none()
@@ -118,7 +137,7 @@ def show(session, user, contract_name):
             Prediction.when_created):
         predictions.append('%.2f%%   %s (%s)' % (
             prediction.value*100, prediction.user.slack_id,
-            prediction.when_created))
+            dt_to_string(prediction.when_created)))
 
         if contract.resolution is not None:
             if prediction.user_id != contract.user_id:
@@ -136,9 +155,11 @@ def show(session, user, contract_name):
                 scores[prediction.user.slack_id] += points
             previous = prediction
 
-    close_info = '%s %s' % (
-        'Closes' if contract.resolution is None else 'Closed',
-        contract.when_closes)
+    if contract.resolution is None:
+        close_info = 'Closes %s (%s UTC)' % (
+            dt_to_string(contract.when_closes), contract.when_closes)
+    else:
+        close_info = 'Closed %s' % dt_to_string(contract.when_closes)
 
     scoring = ''
     if scores:
@@ -169,7 +190,7 @@ def create(session, user, contract_name, terms, when_closes, house_odds):
     # set the house odds
     predict(session, user, contract_name, house_odds)
     return 'Created contract %s open until %s' % (
-        contract_name, when_closes)
+        contract_name, dt_to_string(when_closes))
 
 @command
 def predict(session, user, contract_name, percentage):
