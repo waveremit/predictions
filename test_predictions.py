@@ -116,6 +116,22 @@ def test_predict(s):
 
 def test_resolve(s):
     run_error(s, 'unknown contract',
+              app.cancel, 'test-contract1')
+
+    run(s, app.create, 'test-contract1', 'terms', '1 hour', '.5')
+    run(s, app.cancel, 'test-contract1')
+
+    run_error(s, 'already cancelled',
+              app.cancel, 'test-contract1')
+
+    run(s, app.create, 'test-contract2', 'terms', '1 hour', '.5')
+    with pytest.raises(app.PredictionsError) as e:
+        app.resolve(s, app.lookup_or_create_user(s, 'test2'),
+                    'test-contract2')
+    assert 'Only test can resolve test-contract2' in str(e.value)
+
+def test_resolve(s):
+    run_error(s, 'unknown contract',
               app.resolve, 'test-contract1', 'true')
 
     run(s, app.create, 'test-contract1', 'terms', '1 hour', '.5')

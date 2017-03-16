@@ -40,6 +40,7 @@ class Contract(db.Model):
     when_created = db.Column(db.DateTime, nullable=False, default=now)
     resolution = db.Column(db.Boolean, nullable=True)
     when_resolved = db.Column(db.DateTime, nullable=True)
+    when_cancelled = db.Column(db.DateTime, nullable=True)
 
     def __init__(self, name, terms, user_id, when_closes):
         self.name = name
@@ -78,7 +79,8 @@ def help(session, user_name):
 /predict show <contract-name>
 /predict create <contract-name> <contract-terms> <when-closes> <house-odds>
 /predict <contract-name> <percentage>
-/predict resolve <contract-name> <true|false>"""
+/predict resolve <contract-name> <true|false>
+/predict cancel <contract-name>"""
 
 class PredictionsError(Exception):
     pass
@@ -123,7 +125,9 @@ def list(session, user):
 def show(session, user, contract_name):
     contract = get_contract_or_raise(session, contract_name)
 
-    if contract.resolution is None:
+    if contract.when_cancelled != None:
+        resolution = 'Cancelled'
+    elif contract.resolution is None:
         resolution = 'Unresolved'
     else:
         resolution = 'Resolved %s' % (contract.resolution)
@@ -139,7 +143,8 @@ def show(session, user, contract_name):
             prediction.value*100, prediction.user.slack_id,
             dt_to_string(prediction.when_created)))
 
-        if contract.resolution is not None:
+        if (contract.when_cancelled == None and
+            contract.resolution is not None):
             if prediction.user_id != contract.user_id:
                 # You don't get points for creating a contract and then betting
                 # on it yourself before anyone else does.  Just treat those as
@@ -200,6 +205,10 @@ def predict(session, user, contract_name, percentage):
         raise PredictionsError('contract %s is already resolved' %
                                contract_name)
 
+    if contract.when_cancelled != None:
+        raise PredictionsError('contract %s was cancelled' %
+                               contract_name)
+
     if contract.when_closes < now():
         raise PredictionsError('contract %s closed at %s' %
                                (contract_name, contract.when_closes))
@@ -241,6 +250,21 @@ def resolve(session, user, contract_name, resolution):
     contract.resolution = (resolution.lower() == 'true')
     contract.when_resolved = now()
     return 'Contract %s resolved as %s' % (contract_name, contract.resolution)
+
+@command
+def cancel(session, user, contract_name):
+    contract = get_contract_or_raise(session, contract_name)
+
+    if contract.when_cancelled != None:
+        raise PredictionsError('contract %s was already cancelled' %
+                               contract_name)
+
+    if contract.user_id != user.user_id:
+         raise PredictionsError('Only %s can cancel %s' % (
+             contract.user.slack_id, contract_name))
+
+    contract.when_cancelled = now()
+    return 'Contract %s cancelled' % contract_name
 
 def lookup_or_create_user(session, slack_id):
     user = session.query(User).filter(
