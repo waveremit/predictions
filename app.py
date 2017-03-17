@@ -4,8 +4,8 @@ import json
 import pytz
 import shlex
 import tzlocal
-import datetime
 import inspect
+import datetime
 import parsedatetime
 from collections import defaultdict
 from flask import Flask, request, Response
