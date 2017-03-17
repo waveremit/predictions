@@ -1,6 +1,6 @@
 # Predictions
 
-A prediction market
+A CFAR-style prediction market for Slack.
 
 ## Setup
 
