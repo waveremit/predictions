@@ -16,7 +16,8 @@ have been changes to the requirements file, run `pip install -r requirements
 
 ## Deployment
 
-Pushes to master are auto-deployed to Heroku.
+Within Wave, PRs are auto-deployed to Heroku after merging to master, if they
+pass CI.  Outside Wave you're on your own!
 
 If you modified the models, there isn't any automated migration system.  You
 have to run the sql commands manually to make the current DB match your model.
@@ -25,7 +26,7 @@ have to run the sql commands manually to make the current DB match your model.
 
 ### Automated tests
 
-pytest .
+    pytest .
 
 ### Manual testing:
 
