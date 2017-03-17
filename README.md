@@ -16,7 +16,7 @@ have been changes to the requirements file, run `pip install -r requirements
 
 ## Deployment
 
-Pushes to master are auto-deployed to wave-prediction-market.herokuapp.com
+Pushes to master are auto-deployed to Heroku.
 
 If you modified the models, there isn't any automated migration system.  You
 have to run the sql commands manually to make the current DB match your model.
