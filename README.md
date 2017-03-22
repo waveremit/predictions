@@ -21,26 +21,26 @@ for the dependencies.
 To make `/predict` work in Slack, you need to tell Slack to forward commands to
 your server:
 
-1. Visit https://api.slack.com/apps?new_app=1
-2. Enter "Prediction Market" for the name
-3. On the next screen, under "Basic Information" / "Building Apps for Slack"
-   / "Add features and functionality" choose "Slash Commands"
-4. Click "Create New Command"
-5. Enter:
-   a. Command: "/predict"
-   b. Request URL: the url your server is listening on
-   c. Short Description: "a prediction market"
-   d. Usage Hint: "/predict help"
-6. Click "Save"
-7. Click "Basic Information" on the left nav under "Settings"
-8. Scroll down to "Verification Token" under "App Credentials"
-9. Copy that token, and set it as the environment variable `SLACK_TOKEN` on
-   your server.  This is how your server knows to only accept requests that are
-   actually from your Slack
-10. Click "Install App" on the left nav under "Settings"
-11. Click "Install App to Team"
-12. Click "Authorize"
-13. Try out `/predict help` in a channel.
+* Visit https://api.slack.com/apps?new_app=1
+* Enter "Prediction Market" for the name
+* On the next screen, under "Basic Information" / "Building Apps for Slack"
+  / "Add features and functionality" choose "Slash Commands"
+* Click "Create New Command"
+* Enter:
+   * Command: "/predict"
+   * Request URL: the url your server is listening on
+   * Short Description: "a prediction market"
+   * Usage Hint: "/predict help"
+* Click "Save"
+* Click "Basic Information" on the left nav under "Settings"
+* Scroll down to "Verification Token" under "App Credentials"
+* Copy that token, and set it as the environment variable `SLACK_TOKEN` on
+  your server.  This is how your server knows to only accept requests that are
+  actually from your Slack
+* Click "Install App" on the left nav under "Settings"
+* Click "Install App to Team"
+* Click "Authorize"
+* Try out `/predict help` in a channel.
 
 ## Development
 
